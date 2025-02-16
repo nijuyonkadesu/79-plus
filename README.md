@@ -2,7 +2,9 @@
 
 https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-interviews
 
-001 - permutations
+001 - next greater permutations
+002 - threesum
+003 - largest sum of the subarray [no need to find the boundary]
 
 # Basic Steps
 
