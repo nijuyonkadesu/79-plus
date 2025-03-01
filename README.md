@@ -8,6 +8,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 004 - majority n/3 elements 
 005 - subarray xor equals a target
 006 - repeating & missing numbers
+007 - count inversion in a array
 
 # Basic Steps
 
@@ -25,4 +26,5 @@ go run main.go
 2. boore moore voting
 3. xr^k [TODO]
 4. highschool algebra & arithmetic progression (sum of sequence & sum of sequence of squares)
+5. merge sort
 
