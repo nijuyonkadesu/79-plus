@@ -9,6 +9,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 005 - subarray xor equals a target
 006 - repeating & missing numbers
 007 - count inversion in a array
+008 - maximum product of the subarray
 
 # Basic Steps
 
@@ -22,7 +23,7 @@ go run main.go
 
 # New Algorithms
 
-1. kadane
+1. kadane sum & product
 2. boore moore voting
 3. xr^k [TODO]
 4. highschool algebra & arithmetic progression (sum of sequence & sum of sequence of squares)
