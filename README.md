@@ -10,6 +10,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 006 - repeating & missing numbers
 007 - count inversion in a array
 008 - maximum product of the subarray
+009 - search in rotated sorted array
 
 # Basic Steps
 
@@ -28,4 +29,5 @@ go run main.go
 3. xr^k [TODO]
 4. highschool algebra & arithmetic progression (sum of sequence & sum of sequence of squares)
 5. merge sort
+6. binary search
 
