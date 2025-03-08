@@ -11,6 +11,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 007 - count inversion in a array
 008 - maximum product of the subarray
 009 - search in rotated sorted array
+010 - find the minimum number in a rotated sorted array
 
 # Basic Steps
 
