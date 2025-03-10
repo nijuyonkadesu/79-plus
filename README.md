@@ -12,6 +12,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 008 - maximum product of the subarray
 009 - search in rotated sorted array
 010 - find the minimum number in a rotated sorted array
+011 - find the peak element
 
 # Basic Steps
 
