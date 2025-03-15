@@ -13,6 +13,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 009 - search in rotated sorted array
 010 - find the minimum number in a rotated sorted array
 011 - find the peak element
+012 - exhaust the whole thing slowest way possible, but with the given time limit
 
 # Basic Steps
 
