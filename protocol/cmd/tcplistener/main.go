@@ -34,6 +34,7 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 				lineBuffer = string(newData[newlinePos+1:])
 			}
 		}
+		out <- lineBuffer
 	}()
 
 	return out
@@ -41,7 +42,7 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 
 func main() {
 
-	// send data to port using 
+	// send data to port using
 	// echo "Do you have what it takes to be an engineer at TheStartup™?" | nc -w 1 127.0.0.1 42069
 	listener, err := net.Listen("tcp", ":42069")
 	if err != nil {
