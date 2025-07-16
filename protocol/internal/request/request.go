@@ -1,11 +1,10 @@
 package request
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"strings"
 )
 
 type parserState string
@@ -36,64 +35,74 @@ func newRequest() *Request {
 	}
 }
 
-var SEPARATOR = "\r\n"
+var SEPARATOR = []byte("\r\n")
 var ERROR_BAD_FORMAT = fmt.Errorf("content does not adhere to http 1.1 standard")
 var UNNSUPPORTED_HTTP = fmt.Errorf("version is not HTTP/1.1")
 
-// TODO: change to bytes
-func parseRequestLine(s string) (*RequestLine, int, error) {
-	idx := strings.Index(s, SEPARATOR)
+func parseRequestLine(s []byte) (*RequestLine, int, error) {
+	idx := bytes.Index(s, SEPARATOR)
 	if idx == -1 {
 		return nil, 0, nil
 	}
 
-	// TODO: you need to keep track of last read position. such that, you can read chunk by chunk
 	startLine := s[:idx]
-	// rest := s[idx+len(SEPARATOR):]
+	read := len(startLine) + len(SEPARATOR)
 
-	parts := strings.Split(startLine, " ")
+	parts := bytes.Split(startLine, []byte(" "))
 	if len(parts) < 3 {
 		return nil, 0, ERROR_BAD_FORMAT
 	}
 
 	method := parts[0]
 	path := parts[1]
-	httpVersion := strings.Split(parts[2], "/")
+	httpVersion := bytes.Split(parts[2], []byte("/"))
 	if len(httpVersion) < 2 {
 		return nil, 0, UNNSUPPORTED_HTTP
 	}
 	version := httpVersion[1]
 
 	rl := RequestLine{
-		HttpVersion:   version,
-		RequestTarget: path,
-		Method:        method,
+		HttpVersion:   string(version),
+		RequestTarget: string(path),
+		Method:        string(method),
 	}
 	if rl.ValidHTTP() != true {
 		return nil, 0, UNNSUPPORTED_HTTP
 	}
 
-	return &rl, len(startLine), nil
-
+	return &rl, read, nil
 }
 
 func (r *Request) parse(data []byte) (int, error) {
-	rl, readTill, err := parseRequestLine(string(data))
 
-	// TODO: use switch + for loop for header / body parsing
-	if rl != nil {
-		r.RequestLine = *rl
-		r.state = StateDone
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
+	read := 0
+outer:
+	for {
+		switch r.state {
+		case StateInit:
+			rl, readTill, err := parseRequestLine(data[read:])
+			if err != nil {
+				return 0, err
+			}
 
-	return readTill, nil
+			if readTill == 0 {
+				break outer
+			}
+
+			read += readTill
+			if rl != nil {
+				r.RequestLine = *rl
+				r.state = StateDone
+			}
+		case StateDone:
+			break outer
+		}
+	}
+	return read, nil
 }
 
 func (r *Request) done() bool {
-	return r.state == StateDone 
+	return r.state == StateDone
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
@@ -118,7 +127,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, err
 		}
 
-		// TODO: but why...? why should we handle for a case where buffer might containe unwanted data? is it because buffer is small? 
+		// TODO: but why...? why should we handle for a case where buffer might containe unwanted data? is it because buffer is small?
 		copy(buf, buf[readN:bufLen])
 		bufLen -= readN
 	}
