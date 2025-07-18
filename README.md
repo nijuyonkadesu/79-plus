@@ -1,21 +1,21 @@
-# Questions 
+# Questions
 
 https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-interviews
 
-001 - next greater permutations
-002 - threesum
-003 - largest sum of the subarray [no need to find the boundary]
-004 - majority n/3 elements 
-005 - subarray xor equals a target
-006 - repeating & missing numbers
-007 - count inversion in a array
-008 - maximum product of the subarray
-009 - search in rotated sorted array
-010 - find the minimum number in a rotated sorted array
-011 - find the peak element
-012 - exhaust the whole thing slowest way possible, but with the given time limit
-013 - aggressive cows
-014 - book allocate global minima
+- `001` - next greater permutations
+- `002` - threesum
+- `003` - largest sum of the subarray [no need to find the boundary]
+- `004` - majority n/3 elements
+- `005` - subarray xor equals a target
+- `006` - repeating & missing numbers
+- `007` - count inversion in a array
+- `008` - maximum product of the subarray
+- `009` - search in rotated sorted array
+- `010` - find the minimum number in a rotated sorted array
+- `011` - find the peak element
+- `012` - exhaust the whole thing slowest way possible, but with the given time limit
+- `013` - aggressive cows
+- `014` - book allocate global minima
 
 # Basic Steps
 
@@ -35,4 +35,3 @@ go run main.go
 4. highschool algebra & arithmetic progression (sum of sequence & sum of sequence of squares)
 5. merge sort
 6. binary search
-
