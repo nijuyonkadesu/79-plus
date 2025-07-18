@@ -89,6 +89,7 @@ outer:
 				break outer
 			}
 
+			// TODO: parse headers here - ahh, not needed...? in this design we are isolating both the header, start line and the message body...
 			read += readTill
 			if rl != nil {
 				r.RequestLine = *rl

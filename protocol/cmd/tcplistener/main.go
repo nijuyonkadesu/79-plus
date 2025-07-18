@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
+
+	"me.httpfrom.tcp/internal/request"
 )
 
 func getLinesChannel(f io.ReadCloser) <-chan string {
@@ -54,8 +56,14 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		for line := range getLinesChannel(conn) {
-			fmt.Println("read:", line)
+		r, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatal(err)
 		}
+		fmt.Printf("Request line:\n")
+		fmt.Printf("- Method: %s\n", r.RequestLine.Method)
+		fmt.Printf("- Target: %s\n", r.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s\n", r.RequestLine.HttpVersion)
 	}
 }
+
