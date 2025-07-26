@@ -94,6 +94,10 @@ func (h *Headers) Get(name string) string {
 }
 
 func (h *Headers) Set(name, value string) {
+	val := h.Get(name)
+	if val != "" {
+		value = val + ", " + value
+	}
 	h.headers[strings.ToLower(name)] = value
 }
 
