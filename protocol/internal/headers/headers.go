@@ -3,12 +3,17 @@ package headers
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
-type Header map[string]string
+type Headers struct {
+	headers map[string]string
+}
 
-func NewHeaders() Header {
-	return map[string]string{}
+func NewHeaders() *Headers {
+	return &Headers{
+		headers: map[string]string{},
+	}
 }
 
 var cr = []byte("\r\n")
@@ -23,6 +28,38 @@ var MALFORMED_FIELD_VALUE = fmt.Errorf("header field value is missing")
 // map & string are already a pointer (NEWS)
 
 // Think: why would requestLine parsing needed state and not this?? it's just a design choice or do we have anything specific?
+
+var allowedCharsMap [128]bool
+
+func init() {
+	for i := 'A'; i <= 'Z'; i++ {
+		allowedCharsMap[i] = true
+	}
+
+	for i := 'a'; i <= 'z'; i++ {
+		allowedCharsMap[i] = true
+	}
+
+	for i := '0'; i <= '9'; i++ {
+		allowedCharsMap[i] = true
+	}
+
+	// char ~ has the highest value 126
+	const specialChars = `!#$%&'*+-.^_` + "`" + `|~`
+	for _, c := range specialChars {
+		allowedCharsMap[c] = true
+	}
+}
+
+func isValidFieldName(field string) error {
+	for _, char := range field {
+		if !(char <= 128 && allowedCharsMap[char]) {
+			return fmt.Errorf("character %c is not allowd", char)
+		}
+	}
+
+	return nil
+}
 
 func parseHeader(data []byte) (string, string, int, error) {
 	read := 0
@@ -41,6 +78,10 @@ func parseHeader(data []byte) (string, string, int, error) {
 		return "", "", 0, MALFORMED_FIELD_NAME
 	}
 	key := string(parts[0])
+	err := isValidFieldName(key)
+	if err != nil {
+		return "", "", 0, err
+	}
 
 	read += len(parts[1]) + len(separator)
 	value := string(bytes.TrimSpace(parts[1]))
@@ -48,8 +89,16 @@ func parseHeader(data []byte) (string, string, int, error) {
 	return key, value, read, nil
 }
 
+func (h *Headers) Get(name string) string {
+	return h.headers[strings.ToLower(name)]
+}
+
+func (h *Headers) Set(name, value string) {
+	h.headers[strings.ToLower(name)] = value
+}
+
 // Think: why Parse is exported in Headers but not in request? coz parsing headers is optional?
-func (h Header) Parse(data []byte) (int, bool, error) {
+func (h *Headers) Parse(data []byte) (int, bool, error) {
 
 	done := false
 	read := 0
@@ -68,12 +117,12 @@ func (h Header) Parse(data []byte) (int, bool, error) {
 		}
 
 		// copy() is not needed because, we are not making using for buffers as we did in request line parsing
-		key, value, n, err := parseHeader(data[read:read+idx])
+		key, value, n, err := parseHeader(data[read : read+idx])
 		if err != nil {
 			return 0, false, err
 		}
 
-		h[key] = value
+		h.Set(key, value)
 		read += n + len(cr)
 	}
 
