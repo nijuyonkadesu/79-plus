@@ -5,13 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"me.httpfrom.tcp/internal/headers"
 )
 
 type parserState string
 
 const (
-	StateInit parserState = "init"
-	StateDone parserState = "done"
+	ParsingRequestLine parserState = "requestline"
+	ParsingHeaders parserState = "headers"
+	ParsingComplete parserState = "complete"
+	// continue (19:00)
 )
 
 type RequestLine struct {
@@ -26,12 +30,14 @@ func (r *RequestLine) ValidHTTP() bool {
 
 type Request struct {
 	RequestLine RequestLine
+	Headers		headers.Headers
 	state       parserState
 }
 
 func newRequest() *Request {
 	return &Request{
-		state: StateInit,
+		state: ParsingRequestLine,
+		Headers: *headers.NewHeaders(),
 	}
 }
 
@@ -79,31 +85,46 @@ func (r *Request) parse(data []byte) (int, error) {
 outer:
 	for {
 		switch r.state {
-		case StateInit:
-			rl, readTill, err := parseRequestLine(data[read:])
+		case ParsingRequestLine:
+			rl, n, err := parseRequestLine(data[read:])
 			if err != nil {
 				return 0, err
 			}
 
-			if readTill == 0 {
+			if n == 0 {
 				break outer
 			}
 
 			// TODO: parse headers here - ahh, not needed...? in this design we are isolating both the header, start line and the message body...
-			read += readTill
-			if rl != nil {
-				r.RequestLine = *rl
-				r.state = StateDone
+			read += n
+			r.RequestLine = *rl
+			r.state = ParsingHeaders
+
+		case ParsingHeaders: 
+			n, done, err := r.Headers.Parse(data[read:])
+			if err != nil {
+				return 0, err
 			}
-		case StateDone:
+			if done {
+				r.state = ParsingComplete
+			}
+			if n == 0 {
+				break outer
+			}
+			read += n
+
+		case ParsingComplete:
 			break outer
+
+		default: 
+			panic("skill issue")
 		}
 	}
 	return read, nil
 }
 
 func (r *Request) done() bool {
-	return r.state == StateDone
+	return r.state == ParsingComplete 
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
