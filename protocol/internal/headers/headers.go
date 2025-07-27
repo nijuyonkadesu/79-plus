@@ -3,6 +3,7 @@ package headers
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -89,6 +90,21 @@ func parseHeader(data []byte) (string, string, int, error) {
 	return key, value, read, nil
 }
 
+func (h *Headers) GetInt(name string, defaultValue int) int {
+	valueStr, ok := h.headers[name]
+	if !ok {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(strings.TrimSpace(valueStr))
+	if err != nil {
+		return defaultValue
+	}
+
+	// TODO: but, white space affects the value returned \r\n
+	return value
+}
+
 func (h *Headers) Get(name string) string {
 	return h.headers[strings.ToLower(name)]
 }
@@ -99,6 +115,12 @@ func (h *Headers) Set(name, value string) {
 		value = val + ", " + value
 	}
 	h.headers[strings.ToLower(name)] = value
+}
+
+func (h *Headers) ForEach(cb func(n, v string)) {
+	for n, v := range h.headers {
+		cb(n, v)
+	}
 }
 
 // Think: why Parse is exported in Headers but not in request? coz parsing headers is optional?
@@ -117,6 +139,7 @@ func (h *Headers) Parse(data []byte) (int, bool, error) {
 		// the empty line after all the field lines (end of headers) - yea 0 means, first character matchs registered nurse
 		if idx == 0 {
 			done = true
+			read += len(cr)
 			break
 		}
 

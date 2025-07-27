@@ -13,9 +13,9 @@ type parserState string
 
 const (
 	ParsingRequestLine parserState = "requestline"
-	ParsingHeaders parserState = "headers"
-	ParsingComplete parserState = "complete"
-	// continue (19:00)
+	ParsingHeaders     parserState = "headers"
+	ParsingBody        parserState = "body"
+	ParsingComplete    parserState = "complete"
 )
 
 type RequestLine struct {
@@ -30,13 +30,15 @@ func (r *RequestLine) ValidHTTP() bool {
 
 type Request struct {
 	RequestLine RequestLine
-	Headers		headers.Headers
-	state       parserState
+	Headers     headers.Headers
+	Body        []byte
+
+	state parserState
 }
 
 func newRequest() *Request {
 	return &Request{
-		state: ParsingRequestLine,
+		state:   ParsingRequestLine,
 		Headers: *headers.NewHeaders(),
 	}
 }
@@ -95,28 +97,46 @@ outer:
 				break outer
 			}
 
-			// TODO: parse headers here - ahh, not needed...? in this design we are isolating both the header, start line and the message body...
 			read += n
 			r.RequestLine = *rl
 			r.state = ParsingHeaders
 
-		case ParsingHeaders: 
+		case ParsingHeaders:
 			n, done, err := r.Headers.Parse(data[read:])
 			if err != nil {
 				return 0, err
 			}
 			if done {
-				r.state = ParsingComplete
+				r.state = ParsingBody
 			}
 			if n == 0 {
 				break outer
 			}
 			read += n
 
+		case ParsingBody:
+			contentLength := r.Headers.GetInt("content-length", 0)
+			body := data[read:]
+
+			remaining := contentLength - len(r.Body)
+			if remaining == 0 {
+				r.state = ParsingComplete
+				break outer
+			}
+
+			if contentLength == 0 {
+				r.state = ParsingComplete
+				break outer
+			}
+
+			r.Body = append(r.Body, body...)
+			read += len(body)
+			break outer
+
 		case ParsingComplete:
 			break outer
 
-		default: 
+		default:
 			panic("skill issue")
 		}
 	}
@@ -124,7 +144,7 @@ outer:
 }
 
 func (r *Request) done() bool {
-	return r.state == ParsingComplete 
+	return r.state == ParsingComplete
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
@@ -134,24 +154,38 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 	// WOAHHHHH,... ReadAll is automatically implemented for us!? - coz we use io.Reader as type!!? damm
 	// data, err := io.ReadAll(reader)
+outer:
 	for !req.done() {
 		// TODO: at the very end of exhausting buffer - bufLen could exceed the buffer size, causing bufLen + n to overflow
+		if bufLen == len(buf) {
+			return nil, fmt.Errorf("buffer full but request incomplete. possible overflow")
+		}
+
 		n, err := reader.Read(buf[bufLen:])
 		bufLen += n
-		// TODO: handle io.EOF - what to do with errors in general ?
+
+		readN, parseErr := req.parse(buf[:bufLen])
+		if parseErr != nil {
+			return nil, parseErr
+		}
+
+		// shift the unparsed data to the beginning of the buffer.
+		if readN > 0 {
+			copy(buf, buf[readN:bufLen])
+			bufLen -= readN
+		}
+
+		if err == io.EOF {
+			if !req.done() {
+				return nil, fmt.Errorf("connection closed prematurely, or insufficient content")
+			}
+			break outer
+		}
+
 		if err != nil {
 			return nil, errors.Join(
 				fmt.Errorf("read failure %w", err))
 		}
-
-		readN, err := req.parse(buf[:bufLen])
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO: but why...? why should we handle for a case where buffer might containe unwanted data? is it because buffer is small?
-		copy(buf, buf[readN:bufLen])
-		bufLen -= readN
 	}
 	return req, nil
 }

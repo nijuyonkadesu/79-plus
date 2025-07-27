@@ -15,7 +15,7 @@ func TestHeaders(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, h)
 	assert.Equal(t, "localhost:42069", h.Get("Host"))
-	assert.Equal(t, 23, n) // Not 25 coz, the last registered nurse is empty string
+	assert.Equal(t, 25, n) // count the registered nurse too
 	assert.True(t, done)
 
 	// Test: Valid single header
@@ -26,7 +26,7 @@ func TestHeaders(t *testing.T) {
 	require.NotNil(t, h)
 	assert.Equal(t, "localhost:42069", h.Get("Host"))
 	assert.Equal(t, "MOhajana", h.Get("HEy"))
-	assert.Equal(t, 45, n)
+	assert.Equal(t, 47, n)
 	assert.True(t, done)
 
 	// Test: Invalid spacing header
@@ -52,6 +52,6 @@ func TestHeaders(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, h)
 	assert.Equal(t, "I'm fine, I'm fine too", h.Get("user"))
-	assert.Equal(t, 40, n)
+	assert.Equal(t, 42, n)
 	assert.True(t, done)
 }
