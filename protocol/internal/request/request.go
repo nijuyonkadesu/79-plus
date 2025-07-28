@@ -175,6 +175,7 @@ outer:
 			bufLen -= readN
 		}
 
+		// yea... like prime said, in irl we don't get EOF... after EOF, how can I even send the response back to a "closed" connection... Hilarious.
 		if err == io.EOF {
 			if !req.done() {
 				return nil, fmt.Errorf("connection closed prematurely, or insufficient content")
