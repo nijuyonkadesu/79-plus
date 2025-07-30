@@ -5,18 +5,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"me.httpfrom.tcp/internal/server"
 )
 
 const port = 42069
 
 func main() {
-	// TODO: implement in internal/server/server.go
-	server.ListenAndServe()
-	server, err := server.Serve()
+	s, err := server.Serve(port)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
-	defer server.Close()
+	defer s.Close()
 	log.Println("Server started on port", port)
 
 	sigChan := make(chan os.Signal, 1)
