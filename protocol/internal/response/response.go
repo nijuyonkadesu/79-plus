@@ -30,13 +30,17 @@ type HandlerError struct {
 	Message string
 }
 
-type Handler func(w io.Writer, req *request.Request) *HandlerError
-
-func (h *HandlerError) Write(w io.Writer) {
-	WriteStatusLine(w, h.Code)
-	WriteHeaders(w, GetDefaultHeaders(len(h.Message)))
-	w.Write([]byte(h.Message))
+type Writer struct {
+	writer io.Writer
 }
+
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{
+		writer: w,
+	}
+}
+
+type Handler func(w *Writer, req *request.Request)
 
 func getStatusReason(status StatusCode) string {
 	switch status {
@@ -51,15 +55,6 @@ func getStatusReason(status StatusCode) string {
 	}
 }
 
-func WriteStatusLine(w io.Writer, status StatusCode) error {
-	b := []byte{}
-	reason := getStatusReason(status)
-	b = fmt.Appendf(b, "HTTP/1.1 %d %s\r\n", status, reason)
-
-	_, err := w.Write(b)
-	return err
-}
-
 func GetDefaultHeaders(contentLength int) *headers.Headers {
 	h := headers.NewHeaders()
 	h.Set("content-length", fmt.Sprint(contentLength))
@@ -69,13 +64,26 @@ func GetDefaultHeaders(contentLength int) *headers.Headers {
 	return h
 }
 
-func WriteHeaders(w io.Writer, header *headers.Headers) error {
+func (w *Writer) WriteStatusLine(status StatusCode) error {
+	b := []byte{}
+	reason := getStatusReason(status)
+	b = fmt.Appendf(b, "HTTP/1.1 %d %s\r\n", status, reason)
+
+	_, err := w.writer.Write(b)
+	return err
+}
+
+func (w *Writer) WriteHeaders(header *headers.Headers) error {
 	b := []byte{}
 	header.ForEach(func(n, v string) {
 		b = fmt.Appendf(b, "%s: %s\r\n", n, v)
 	})
 
 	b = fmt.Appendf(b, "\r\n")
-	_, err := w.Write(b)
+	_, err := w.writer.Write(b)
 	return err
+}
+
+func (w *Writer) WriteBody(p []byte) (int, error) {
+	return w.writer.Write(p)
 }

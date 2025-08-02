@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -14,28 +13,26 @@ import (
 
 const port = 42069
 
-func simpleRouter(w io.Writer, req *request.Request) *response.HandlerError {
+func simpleRouter(w *response.Writer, req *request.Request) {
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
 		message := "Your problem is not my problem\n"
-		return &response.HandlerError{
-			Code: response.BadRequest,
-			Message: message,
-		}
+		w.WriteStatusLine(response.BadRequest)
+		w.WriteHeaders(response.GetDefaultHeaders(len(message)))
+		w.WriteBody([]byte(message))
 
 	case "/myproblem":
 		message := "Woopsie, my bad\n"
-		return &response.HandlerError{
-			Code: response.Failure,
-			Message: message,
-		}
+		w.WriteStatusLine(response.Failure)
+		w.WriteHeaders(response.GetDefaultHeaders(len(message)))
+		w.WriteBody([]byte(message))
 
 	default:
-		body := "All good, frfr\n"
-		w.Write([]byte(body))
+		message := "All good, frfr\n"
+		w.WriteStatusLine(response.OK)
+		w.WriteHeaders(response.GetDefaultHeaders(len(message)))
+		w.WriteBody([]byte(message))
 	}
-
-	return nil
 }
 
 func main() {

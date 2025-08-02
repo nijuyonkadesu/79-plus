@@ -59,29 +59,20 @@ This way, we can avoid a case we send 200 as response, and then server crashes r
 */
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
+	buf := bytes.NewBuffer([]byte{})
+	w := response.NewWriter(buf)
+	h := response.GetDefaultHeaders(0)
 
 	r, err := request.RequestFromReader(conn)
 	if err != nil {
-		hErr := response.HandlerError{
-			Code:    response.BadRequest,
-			Message: err.Error(),
-		}
-		hErr.Write(conn)
+		w.WriteStatusLine(response.BadRequest)
+		w.WriteHeaders(h)
+		w.WriteBody([]byte(err.Error()))
 		return
 	}
 
-	buf := bytes.NewBuffer([]byte{})
-	hErr := s.handler(buf, r) // TODO: custom headers? 
-	if hErr != nil {
-		hErr.Write(conn)
-		return
-	}
-
-	body := buf.Bytes() // TODO: streaming response
-	h := response.GetDefaultHeaders(len(body))
-	response.WriteStatusLine(conn, response.OK)
-	response.WriteHeaders(conn, h)
-	conn.Write(body)
+	s.handler(w, r) // TODO: streaming response?
+	buf.WriteTo(conn)
 }
 
 /*
