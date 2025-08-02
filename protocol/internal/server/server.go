@@ -1,16 +1,19 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
 	"sync/atomic"
 
 	"me.httpfrom.tcp/internal/request"
+	"me.httpfrom.tcp/internal/response"
 )
 
 type Server struct {
 	listener net.Listener
+	handler  response.Handler
 	isAlive  atomic.Bool
 }
 
@@ -19,11 +22,12 @@ func (s *Server) Close() error {
 	return s.listener.Close()
 }
 
-func Serve(port uint16) (*Server, error) {
+func Serve(port uint16, handler response.Handler) (*Server, error) {
 	// by returning the pointer, the memory is allocated in heap.
 	// and avoid making a copy of struct before returning it.
 	server := &Server{}
 	server.isAlive.Store(true)
+	server.handler = handler
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -49,14 +53,38 @@ func (s *Server) listen(listener net.Listener) {
 	}
 }
 
-func (*Server) handle(conn net.Conn) {
+/*
+Creates buffer where response is written first. If no error happens, it is written to the connection.
+This way, we can avoid a case we send 200 as response, and then server crashes right after.
+*/
+func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
 	r, err := request.RequestFromReader(conn)
-	fmt.Println(r)
 	if err != nil {
-		log.Printf("Failed to process connection %v", err)
+		hErr := response.HandlerError{
+			Code:    response.BadRequest,
+			Message: err.Error(),
+		}
+		hErr.Write(conn)
+		return
 	}
-	response := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!")
-	conn.Write(response)
+
+	buf := bytes.NewBuffer([]byte{})
+	hErr := s.handler(buf, r) // TODO: custom headers? 
+	if hErr != nil {
+		hErr.Write(conn)
+		return
+	}
+
+	body := buf.Bytes() // TODO: streaming response
+	h := response.GetDefaultHeaders(len(body))
+	response.WriteStatusLine(conn, response.OK)
+	response.WriteHeaders(conn, h)
+	conn.Write(body)
 }
+
+/*
+Connection Managers : handle(), listen() - just manages tcp connections
+Application Logic	: Handler() - decouples server logic and application logic
+*/
