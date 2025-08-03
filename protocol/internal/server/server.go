@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -54,25 +53,22 @@ func (s *Server) listen(listener net.Listener) {
 }
 
 /*
-Creates buffer where response is written first. If no error happens, it is written to the connection.
-This way, we can avoid a case we send 200 as response, and then server crashes right after.
+[removed] Creates buffer where response is written first. If no error happens, it is written to the connection.
+[removed] This way, we can avoid a case we send 200 as response, and then server crashes right after.
 */
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-	buf := bytes.NewBuffer([]byte{})
-	w := response.NewWriter(buf)
-	h := response.GetDefaultHeaders(0)
+	w := response.NewWriter(conn)
 
 	r, err := request.RequestFromReader(conn)
 	if err != nil {
 		w.WriteStatusLine(response.BadRequest)
-		w.WriteHeaders(h)
+		w.WriteHeaders(response.GetDefaultHeaders(0))
 		w.WriteBody([]byte(err.Error()))
 		return
 	}
 
-	s.handler(w, r) // TODO: streaming response?
-	buf.WriteTo(conn)
+	s.handler(w, r)
 }
 
 /*
