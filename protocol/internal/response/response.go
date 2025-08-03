@@ -3,6 +3,7 @@ package response
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"me.httpfrom.tcp/internal/headers"
 	"me.httpfrom.tcp/internal/request"
@@ -84,6 +85,22 @@ func (w *Writer) WriteHeaders(header *headers.Headers) error {
 	return err
 }
 
+// Mandatory to call this even when trailer header is not used
+func (w *Writer) WriteTrailers(h *headers.Headers) error {
+	val := h.Get("trailer")
+	if val == "" {
+		return fmt.Errorf("trailer header not found")
+	}
+	trailers := headers.NewHeaders()
+
+	keys := strings.SplitSeq(val, ", ")
+	for key := range keys {
+		trailers.Set(strings.ToLower(key), h.Get(key))
+	}
+
+	return w.WriteHeaders(trailers)
+}
+
 func (w *Writer) WriteBody(p []byte) (int, error) {
 	return w.writer.Write(p)
 }
@@ -101,6 +118,7 @@ func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 }
 
 func (w *Writer) WriteChunkedBodyDone() (int, error) {
-	_, err := w.writer.Write(fmt.Appendf(nil, "%x\r\n\r\n", 0))
+	// another \r\n is added when WritingTrailers - but is that fine?
+	_, err := w.writer.Write(fmt.Appendf(nil, "%x\r\n", 0))
 	return 0, err
 }

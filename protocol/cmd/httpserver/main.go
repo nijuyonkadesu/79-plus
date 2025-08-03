@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -31,7 +33,10 @@ func simpleRouter(w *response.Writer, req *request.Request) {
 		w.WriteBody([]byte(message))
 
 	} else if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin") {
+		// curl -X GET localhost:42069/httpbin/stream/100 -v --raw
+		hasher := sha256.New()
 		path := req.RequestLine.RequestTarget[len("/httpbin"):]
+		length := 0
 		// using httpbin to get some huge data
 		res, err := http.Get("https://httpbin.org" + path)
 		if err != nil {
@@ -44,18 +49,28 @@ func simpleRouter(w *response.Writer, req *request.Request) {
 		h := response.GetDefaultHeaders(0)
 		h.Delete("content-length")
 		h.Set("transfer-encoding", "chunked")
+		h.Set("trailer", "X-Content-SHA256")
+		h.Set("trailer", "X-Content-Length")
 		w.WriteHeaders(h)
-		// TODO: how to handle errors properly? (better check go's http library at this point)
 
+		// TODO: how to handle errors properly? (better check go's http library at this point)
 		chunkedBody := make([]byte, 32)
 		for {
 			n, err := res.Body.Read(chunkedBody)
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			w.WriteChunkedBody(chunkedBody[:n])
+			chunk := chunkedBody[:n]
+			length += len(chunk)
+			// fun: try out io.MultiWriter
+			hasher.Write(chunk)
+			w.WriteChunkedBody(chunk)
 		}
+		hash := hasher.Sum(nil)
+		h.Set("X-Content-SHA256", fmt.Sprintf("%x", hash))
+		h.Set("X-Content-Length", fmt.Sprintf("%d", length))
 		w.WriteChunkedBodyDone()
+		w.WriteTrailers(h)
 
 	} else {
 		message := "All good, frfr\n"
