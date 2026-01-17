@@ -16,6 +16,7 @@ https://takeuforward.org/interview-sheets/strivers-79-last-moment-dsa-sheet-ace-
 - `012` - exhaust the whole thing slowest way possible, but with the given time limit
 - `013` - aggressive cows
 - `014` - book allocate global minima
+- `015` - median of two sorted arrays
 
 # Basic Steps
 
