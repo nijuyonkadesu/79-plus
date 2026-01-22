@@ -25,24 +25,25 @@ func (p *point) SetZ(z int) {
 }
 
 func main() {
+	log.SetPrefix("> ")
+	log.SetFlags(0 | log.Lshortfile)
 	me := point{ }
 
 	you := point{
 		x: 0,
-		y: 0,
+		y: 1,
 	}
 
 	res := me == you
-	fmt.Printf("res: %T", res)
+	fmt.Printf("res: (%T) %v\n", res, res)
+	fmt.Printf("arg: (%T) %v\n", you, you)
 
-	log.SetPrefix("> ")
-	log.SetFlags(0)
-	msg, err := greeting.Okay("hemlo")
+	msg, err := greeting.Okay("")
 	if is_err(err) {
 		fmt.Println("bad", err)
 	}
 
-	fmt.Printf("%s", msg)
+	fmt.Printf("%s\n", msg)
 }
 
 func is_err(err error) bool {
