@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -37,7 +38,7 @@ func main() {
 		for {
 			var message string
 			err := websocket.Message.Receive(conn, &message)
-			if err != nil {
+			if err != nil && err != io.EOF {
 				if err.Error() == "websocket: close sent" || err.Error() == "websocket: read limit exceeded" {
 					log.Println("Server closed the connection.")
 				} else {
@@ -50,6 +51,15 @@ func main() {
 	}()
 
 	messageToSend := "Hello from the client!"
+	err = websocket.Message.Send(conn, messageToSend)
+	if err != nil {
+		log.Printf("Error sending message: %v\n", err)
+		return
+	}
+	log.Printf("Sent message: %s\n", messageToSend)
+	time.Sleep(3 * time.Second)
+
+	messageToSend = "hello again?"
 	err = websocket.Message.Send(conn, messageToSend)
 	if err != nil {
 		log.Printf("Error sending message: %v\n", err)
@@ -72,3 +82,4 @@ func main() {
 		}
 	}
 }
+// this whole file is fricked up
