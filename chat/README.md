@@ -81,3 +81,22 @@ TODO: does protobuf be of any help here?
 
 - should not be a microservice - A monolith, but the feature-flags should turn off unnecessary features - so it can be deployed as a microservice with muliple configurations if needed.
 - at later stage (ITR 3 or 4) - think about how to make the system more friendly for backward and forward compatibility.
+
+
+--- 
+
+# Review of ITR 01
+
+- implemented an echo server, listening to port 7777, running on path `/` 
+- when subprotocl negotiation is okay, echo server can handle two types of messages: 
+    - type: echo and type: chill
+- user input is simply re-constructed and forwarded back in json
+- connection is properly closed when close is received from the client. (and I think coder/websocket takes care of other connection related failure)
+- client.go to tryout the echo server
+- server_test.go to verify the messages (TODO: create complex scenarios, like spinning out multiple clients)
+
+# ITR 02 plans
+
+- TODO: introduce `/publish` HTTP endpoint to post any message to the server
+- TODO: introduce `/subscribe` HTTP endpoint to subscribe to a channel to receive messages after websocket upgrade. (only when >1 clients are connected to the same server)
+- TODO: introduce room & hub, it's time to keep the application stateful, and aware of all connections in the server and how they relate

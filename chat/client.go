@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.Lshortfile)
 	u, err := url.Parse("ws://127.0.0.1:7777")
 	if err != nil {
 		log.Fatalf("Failed to parse URL: %v", err)
@@ -36,50 +37,52 @@ func main() {
 	go func() {
 		defer close(done)
 		for {
-			var message string
-			err := websocket.Message.Receive(conn, &message)
-			if err != nil && err != io.EOF {
-				if err.Error() == "websocket: close sent" || err.Error() == "websocket: read limit exceeded" {
-					log.Println("Server closed the connection.")
-				} else {
-					log.Printf("Error reading message: %v\n", err)
+			var message incomingMessage
+			err := websocket.JSON.Receive(conn, &message)
+			if err != nil {
+				if err == io.EOF {
+					log.Println("Connection closed by the server.")
 				}
+				log.Printf("Error reading message: %v\n", err)
 				return
 			}
 			log.Printf("Received message: %s\n", message)
 		}
 	}()
 
-	messageToSend := "Hello from the client!"
-	err = websocket.Message.Send(conn, messageToSend)
-	if err != nil {
-		log.Printf("Error sending message: %v\n", err)
-		return
-	}
-	log.Printf("Sent message: %s\n", messageToSend)
-	time.Sleep(3 * time.Second)
+	go func() {
+		messageToSend := outgoingMessage{Type: "echo", Message: "Hello from the client!"}
+		err = websocket.JSON.Send(conn, messageToSend)
+		if err != nil {
+			log.Printf("Error sending message: %v\n", err)
+			return
+		}
+		log.Printf("Sent message: %s\n", messageToSend)
+		time.Sleep(3 * time.Second)
 
-	messageToSend = "hello again?"
-	err = websocket.Message.Send(conn, messageToSend)
-	if err != nil {
-		log.Printf("Error sending message: %v\n", err)
-		return
-	}
-	log.Printf("Sent message: %s\n", messageToSend)
-	time.Sleep(3 * time.Second)
+		messageToSend = outgoingMessage{Type: "echo", Message: "hello again?"}
+		err = websocket.JSON.Send(conn, messageToSend)
+		if err != nil {
+			log.Printf("Error sending message: %v\n", err)
+			return
+		}
+		log.Printf("Sent message: %v\n", messageToSend)
+		time.Sleep(3 * time.Second)
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
+	// Hmmm... this blocks execution..., and when one of the case happens, the program resumes...
+	// maybe try context.NotifyContext instead of manually sending values using channels
 	select {
 	case <-done:
 		log.Println("Client finished.")
 	case <-sig:
 		log.Println("Interrupt received, closing connection.")
-		err := websocket.Message.Send(conn, websocket.CloseFrame)
+		err := conn.Close()
 		if err != nil {
 			log.Printf("Error sending close message: %v\n", err)
 		}
 	}
 }
-// this whole file is fricked up

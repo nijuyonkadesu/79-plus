@@ -29,42 +29,48 @@ func (s *echoServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	l := rate.NewLimiter(rate.Every(time.Millisecond*100), 10)
 
-	err = echo(c, l)
-	if err != nil {
-		s.logf("server-%02d: echo: %w", s.id, err)
+	for {
+		err = echo(c, l)
+		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
+			return
+		}
+		if err != nil {
+			s.logf("server-%02d: echo: %w", s.id, err)
+			return
+		}
+
 	}
 }
 
 func echo(c *websocket.Conn, l *rate.Limiter) error {
-	for {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		if !l.Allow() {
-			reason := "rate limit exceeded for client"
-			c.Close(websocket.StatusTryAgainLater, reason)
-			return fmt.Errorf("%s", reason)
-		}
-
-		var msg incomingMessage
-		err := wsjson.Read(ctx, c, &msg)
-		if err != nil {
-			return err
-		}
-
-		var response outgoingMessage
-		switch msg.Type {
-		case "echo":
-			response = outgoingMessage{msg.Type, msg.Message}
-		case "chill":
-			response = outgoingMessage{msg.Type, "chill"}
-		default:
-			return fmt.Errorf("unsupported message type %v received", msg.Type)
-		}
-
-		err = wsjson.Write(ctx, c, &response)
-		if err != nil {
-			return err
-		}
+	if !l.Allow() {
+		reason := "rate limit exceeded for client"
+		c.Close(websocket.StatusTryAgainLater, reason)
+		return fmt.Errorf("%s", reason)
 	}
+
+	var msg incomingMessage
+	err := wsjson.Read(ctx, c, &msg)
+	if err != nil {
+		return err
+	}
+
+	var response outgoingMessage
+	switch msg.Type {
+	case "echo":
+		response = outgoingMessage{msg.Type, msg.Message}
+	case "chill":
+		response = outgoingMessage{msg.Type, "chill"}
+	default:
+		return fmt.Errorf("unsupported message type %v received", msg.Type)
+	}
+
+	err = wsjson.Write(ctx, c, &response)
+	if err != nil {
+		return err
+	}
+	return nil
 }

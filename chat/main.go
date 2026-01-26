@@ -13,6 +13,7 @@ import (
 
 func main() {
 	log.SetFlags(0)
+	log.SetFlags(log.Lshortfile)
 	err := run()
 	if err != nil {
 		log.Fatal(err)
@@ -62,5 +63,5 @@ func run() error {
 	return s.Shutdown(ctx)
 }
 
-//  go run . localhost:7777
+//  go run main.go server.go localhost:7777
 
