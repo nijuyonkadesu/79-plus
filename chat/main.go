@@ -34,11 +34,14 @@ func run() error {
 
 	log.Printf("starting server at ws://%v", l.Addr())
 
+	mux := http.NewServeMux()
+	mux.Handle("/subscribe", &echoServer{
+		id:   1,
+		logf: log.Printf,
+	})
+
 	s := &http.Server{
-		Handler: &echoServer{
-			id:   1,
-			logf: log.Printf,
-		},
+		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -64,4 +67,3 @@ func run() error {
 }
 
 //  go run main.go server.go localhost:7777
-

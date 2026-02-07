@@ -13,7 +13,7 @@ import (
 
 func main() {
 	log.SetFlags(log.Lshortfile)
-	u, err := url.Parse("ws://127.0.0.1:7777")
+	u, err := url.Parse("ws://127.0.0.1:7777/subscribe")
 	if err != nil {
 		log.Fatalf("Failed to parse URL: %v", err)
 	}

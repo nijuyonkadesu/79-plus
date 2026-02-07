@@ -100,3 +100,26 @@ TODO: does protobuf be of any help here?
 - TODO: introduce `/publish` HTTP endpoint to post any message to the server
 - TODO: introduce `/subscribe` HTTP endpoint to subscribe to a channel to receive messages after websocket upgrade. (only when >1 clients are connected to the same server)
 - TODO: introduce room & hub, it's time to keep the application stateful, and aware of all connections in the server and how they relate
+
+```js
+
+POST /publish
+{
+    "type": "message",
+    "message": "hello world",
+    "id": 1,
+}
+
+=> pushes to a queue with a key id (hardcode it as chat:1)
+=> returne OK 200
+
+WS /subscribe
+{
+    "type": "connect",
+    "ids": [1, 2, 3],
+}
+
+=> the current connection can receive updates from all requested ids
+=> with type "message"
+
+```
