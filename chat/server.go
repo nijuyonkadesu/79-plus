@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/domain"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,16 @@ import (
 	"github.com/coder/websocket/wsjson"
 	"golang.org/x/time/rate"
 )
+
+type incomingMessage struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
+
+type outgoingMessage struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
 
 type echoServer struct {
 	id int16
@@ -110,7 +121,7 @@ func liveTransit(ctx context.Context, c *websocket.Conn) error {
 				"message": content,
 			}
 			data, _ := json.Marshal(msg)
-			response := WSMessage{
+			response := domain.WSMessage{
 				Type:    "msessage",
 				Payload: json.RawMessage(data),
 			}

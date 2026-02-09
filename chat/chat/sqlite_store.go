@@ -1,8 +1,9 @@
-package database
+package chat
 
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "modernc.org/sqlite"
 )
@@ -30,6 +31,7 @@ side-effect import... hmm...
 TODO: Generics shine in algorithms? and less useful in data access layers? (what does it mean), gotta see an example
 */
 
+// TODO: read about https://pkg.go.dev/github.com/go-sql-driver/mysql#Config.FormatDSN
 func OpenSQLite(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -39,6 +41,22 @@ func OpenSQLite(dsn string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
+
+	// TODO: figure out which could be the best place to have this method
+	// TODO: search in github for a bit
+	sqlSmt := `
+	CREATE TABLE IF NOT EXISTS users (
+	 	id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		alias TEXT,
+		bio TEXT
+	);
+	`
+	_, err = db.Exec(sqlSmt)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("User table created")
 
 	return db, nil
 }
