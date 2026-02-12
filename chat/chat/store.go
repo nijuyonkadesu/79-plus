@@ -4,28 +4,52 @@ import (
 	"chat/domain"
 	"context"
 	"database/sql"
+	_ "embed"
+	"fmt"
 	"log"
 )
 
+//go:embed create-tables.sql
+var schema string
+
+type Type int
+
+const (
+	SQLite Type = iota
+	Postgres
+	Memstore
+)
+
 type UserStore struct {
-	sql *sql.DB
+	db *sql.DB
 }
 
-func New(db *sql.DB) *UserStore {
-	// get cfg in argument (not db)
-	// func New(ctx context.Context, cfg *Config) (*DoltStore, error) {
-	// create the database if does not exist (on the right path)
-	// construct dsn
-	return &UserStore{
-		sql: db,
+type Config struct {
+	Database string // Database name (default: "first-try")
+	Backend  Type   // Backend type (default: "sqlite") // TODO: make it one of postgres, sqlite
+}
+
+func New(ctx context.Context, cfg *Config) (*UserStore, error) {
+	var db *sql.DB
+	var err error
+
+	switch cfg.Backend {
+	case SQLite:
+		log.Println("Using SQLite")
+		if cfg.Database == "" {
+			cfg.Database = "first-try"
+		}
+		dsn := fmt.Sprintf("./%s.db", cfg.Database)
+		db, err = OpenSQLite(dsn)
+	case Postgres:
+		err = fmt.Errorf("Postgres not supported yet")
 	}
-}
+	if err != nil {
+		return nil, err
+	}
 
-func (s *UserStore) Insert(ctx context.Context, user *domain.User) (*domain.User, error) {
-	s.sql.ExecContext(ctx, "INSERT INTO users (username, alias, bio) VALUES (?, ?, ?)",
-		user.Username, user.Alias, user.Bio)
-
-	return nil, nil
+	_, err = db.ExecContext(ctx, schema)
+	return &UserStore{db: db}, err
 }
 
 
@@ -43,7 +67,7 @@ func (s *UserStore) Insert(ctx context.Context, user *domain.User) (*domain.User
 	b. run the migrations
 3. New invokes createSchema - but see how New is called and managed (notice the package name too)
 
-Extras: 
+Extras:
 - backoff
 - steal this: withRetry
 - continue reading: https://github.dev/steveyegge/beads/tree/main

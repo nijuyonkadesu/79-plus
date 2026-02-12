@@ -3,7 +3,6 @@ package chat
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "modernc.org/sqlite"
 )
@@ -41,22 +40,6 @@ func OpenSQLite(dsn string) (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
-
-	// TODO: figure out which could be the best place to have this method
-	// TODO: search in github for a bit
-	sqlSmt := `
-	CREATE TABLE IF NOT EXISTS users (
-	 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE NOT NULL,
-		alias TEXT,
-		bio TEXT
-	);
-	`
-	_, err = db.Exec(sqlSmt)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("User table created")
 
 	return db, nil
 }
